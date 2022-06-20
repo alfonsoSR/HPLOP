@@ -1,0 +1,5 @@
+numpy==1.22.2
+scipy==1.8.0
+matplotlib==3.5.1
+Cython==0.29.28
+spiceypy==5.0.0
