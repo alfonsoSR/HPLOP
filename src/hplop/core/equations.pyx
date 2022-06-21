@@ -180,7 +180,7 @@ cdef class motion_law:
 
         # Compute position vector in PA reference frame
 
-        pxform_c("J2000", "MOON_PA_DE440", t, R_icrf2pa)
+        pxform_c("J2000", "MOON_PA_DE421", t, R_icrf2pa)
 
         for idx in range(3):
             r_i[idx] = (
@@ -461,7 +461,7 @@ cdef class motion_law:
 
         self.harmonics(self.limit, t, r_vec)
 
-        # self.third_body(t, r_vec, earth)
+        self.third_body(t, r_vec, earth)
         # self.third_body(t, r_vec, sun)
         # self.third_body(t, r_vec, jupiter)
         # self.third_body(t, r_vec, mars)

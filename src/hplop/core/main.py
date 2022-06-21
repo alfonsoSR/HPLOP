@@ -1,5 +1,5 @@
 from hplop.pck.pck import moon_data
-from hplop.utils.utils import Case, kernels, case_info, get_kernels
+from hplop.utils.utils import Case, kernels, case_info, get_kernels, database
 from datetime import datetime
 import spiceypy as spice
 import numpy.typing as npt
@@ -33,6 +33,10 @@ class main:
         # ----- Display information about the case ----- #
 
         case_info(self.case)
+
+        # ----- Check if harmonics' database is available ----- #
+
+        database(case.db_path, case.harmonics_db, case.db_name)
 
         # ----- Assure that all kernels are available ----- #
 

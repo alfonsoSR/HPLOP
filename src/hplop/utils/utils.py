@@ -1,108 +1,13 @@
 import numpy as np
 import numpy.typing as npt
-import os
 from dataclasses import dataclass
 import spiceypy as spice
 import sqlite3
+import os
 
-# Type alias for numpy arrays
+# Type alias for NumPy arrays
 
 ndarray = npt.NDArray[np.float64]
-
-
-class sqlite:
-
-    def __init__(self, file_name: str) -> None:
-
-        self.file_name = file_name
-        self.connection = sqlite3.connect(self.file_name)
-
-        return None
-
-    def __enter__(self):
-
-        return self.connection.cursor()
-
-    def __exit__(self, exc_type, exc_value, traceback):
-
-        self.connection.commit()
-        self.connection.close()
-
-
-class database:
-
-    def __init__(self, file: str) -> None:
-
-        self.source = file
-        self.name = f"{os.path.splitext(self.source)[0]}.db"
-
-        return None
-
-    def makedb(self) -> None:
-
-        with sqlite(self.name) as db:
-
-            db.execute(
-                "CREATE TABLE deg (deg INT NOT NULL , PRIMARY KEY (deg));"
-            )
-
-            db.execute(
-                """
-                    CREATE TABLE ord (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        fk_deg INT NOT NULL,
-                        ord INT NOT NULL,
-                        Clm DOUBLE NOT NULL,
-                        Slm DOUBLE NOT NULL,
-                        FOREIGN KEY(fk_deg) REFERENCES deg(deg)
-                    );
-                """
-            )
-
-        return None
-
-    def filldb(self) -> None:
-
-        with sqlite(self.name) as db:
-
-            with open(self.source) as file:
-
-                rows = file.readlines()[1:]
-
-                for idx, row in enumerate(rows):
-
-                    _d, _o, _C, _S = row.split(",")[:4]
-
-                    d = int(_d)
-                    o = int(_o)
-                    C = float(_C)
-                    S = float(_S)
-
-                    try:
-
-                        db.execute(
-                            "insert into deg (deg) values (?);", (d,)
-                        )
-
-                    except sqlite3.IntegrityError:
-
-                        pass
-
-                    db.execute(
-                        """
-                            insert into ord (id, fk_deg, ord, Clm, Slm)
-                            values (NULL, ?, ?, ?, ?);
-                        """, (d, o, C, S)
-                    )
-
-        return None
-
-    def __call__(self) -> None:
-
-        self.makedb()
-        print("Database has been created")
-        self.filldb()
-        print("Database has been filled")
 
 
 @dataclass
@@ -207,6 +112,7 @@ class Case:
     initial_state: np.ndarray
     tspan: float
     db_name: str
+    harmonics_db: str
     harmonics_deg: int
     db_path: str = "databases"
     cartesian: bool = False
@@ -215,6 +121,123 @@ class Case:
     days: bool = True
     rtol: float = 5e-14
     atol: float = 5e-14
+
+
+class sqlite:
+    """SQLite3 context manager
+    
+    Input
+    -----
+    `file_name` : str
+        
+        Name of the database to be used.
+    """
+
+    def __init__(self, file_name: str) -> None:
+
+        self.file_name = file_name
+        self.connection = sqlite3.connect(self.file_name)
+
+        return None
+
+    def __enter__(self):
+
+        return self.connection.cursor()
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+
+        self.connection.commit()
+        self.connection.close()
+
+        return None
+
+
+class database:
+
+    def __init__(self, root: str, database: str, file: str) -> None:
+
+        # Check if root directory exists
+
+        if not os.path.isdir(root):
+
+            os.system(f"mkdir {root}")
+
+        # Check if source file exists in root directory
+
+        self.source = f"{root}/{os.path.basename(database)}"
+
+        if not os.path.isfile(self.source):
+
+            print(f"Downloading {self.source}")
+
+            os.system(
+                f"curl -# -o {self.source} {database}"
+            )
+
+        # Check if database exists and create it otherwise
+
+        self.path = f"{root}/{file}.db"
+
+        if not os.path.isfile(self.path):
+
+            self.create_database()
+
+            pass
+
+        return None
+
+    def create_database(self) -> None:
+
+        with sqlite(self.path) as db:
+
+            db.execute("""
+                create table deg (deg int not null, primary key (deg));
+            """)
+
+            db.execute("""
+                create table ord (
+                    id integer primary key autoincrement,
+                    fk_deg int not null,
+                    ord int not null,
+                    Clm double not null,
+                    Slm double not null,
+                    foreign key(fk_deg) references deg(deg)
+                );
+            """)
+
+            with open(self.source) as source:
+
+                rows = source.readlines()[1:]
+
+                for row in rows:
+
+                    _d, _o, _C, _S = row.split(",")[:4]
+
+                    d = int(_d)
+                    o = int(_o)
+                    C = float(_C)
+                    S = float(_S)
+
+                    try:
+
+                        db.execute(
+                            """
+                                insert into deg (deg) values (?);
+                            """, (d,)
+                        )
+
+                    except sqlite3.IntegrityError:
+
+                        pass
+
+                    db.execute(
+                        """
+                            insert into ord (id, fk_deg, ord, Clm, Slm)
+                            values (NULL, ?, ?, ?, ?);
+                        """, (d, o, C, S)
+                    )
+
+        return None
 
 
 class kernels:
@@ -232,6 +255,66 @@ class kernels:
     def __exit__(self, exc_type, exc_value, traceback):
 
         spice.kclear()
+
+
+def get_kernels(root: str, kernels: list) -> None:
+
+    # Check if root directory exists and create it otherwise
+
+    if not os.path.isdir(root):
+
+        os.system(f"mkdir {root}")
+
+    # Check if kernels' directory exists and create it otherwise
+
+    kpath = f"{root}/kernels"
+
+    if not os.path.isdir(kpath):
+
+        os.system(f"mkdir {kpath}")
+
+    # Check if all kernels are available and download the missing ones
+
+    with open(f"{root}/metak", "w") as metak:
+
+        metak.write(r"\begindata" + "\nKERNELS_TO_LOAD=(\n")
+
+        for idx, kernel in enumerate(kernels):
+
+            file = os.path.basename(kernel)
+
+            if not os.path.exists(f"{kpath}/{file}"):
+
+                print(f"Downloading {file}")
+
+                os.system(f"curl -# -o {kpath}/{file} {kernel}")
+
+            metak.write(f"'{root}/kernels/{file}'")
+
+            if idx != len(kernels):
+
+                metak.write(",\n")
+
+        metak.write(')\n'+r'\begintext'+'\n')
+
+    return None
+
+
+def case_info(case: Case) -> None:
+
+    print("#########################################")
+    print(f"Initial epoch: {case.initial_epoch}")
+
+    if case.days:
+
+        print(f"Time span: {case.tspan} days")
+
+    else:
+
+        print(f"Time span: {(case.tspan / (24. * 3600.)):0.4f} days")
+
+    print(f"Harmonics database: {case.db_name}")
+    print(f"Harmonics degree: {case.harmonics_deg}")
 
 
 def state2rv(state: np.ndarray) -> tuple:
@@ -286,69 +369,6 @@ def rel_error(orbit: np.ndarray, ref: np.ndarray) -> tuple:
     dv = (v_ref - v)/v_ref
 
     return dr, dv
-
-
-def get_kernels(root: str, kernels: list) -> None:
-    """Assure that all required spice kernels are available
-    and download them if not.
-
-    Input
-    -----
-    `root` : str
-        Directory where kernels stored.
-
-    `kernels` : list
-        List of kernel names.
-    """
-
-    if not os.path.isdir(root):
-        os.system(f"mkdir {root}")
-
-    if not os.path.isdir(f"{root}/kernels"):
-        os.system(f"mkdir {root}/kernels")
-
-    with open(f"{root}/metak", "w") as metak:
-
-        metak.write(r"\begindata"+"\nKERNELS_TO_LOAD=(\n")
-
-        for idx, kernel in enumerate(kernels):
-
-            file = os.path.basename(kernel)
-
-            if not os.path.exists(f"{root}/kernels/{file}"):
-
-                print(f"Downloading {file}")
-
-                os.system(
-                    f"curl -# -o {root}/kernels/{file} {kernel}"
-                )
-
-            metak.write(f"'{root}/kernels/{file}'")
-
-            if idx != len(kernels):
-
-                metak.write(",\n")
-
-        metak.write(')\n'+r'\begintext'+'\n')
-
-    return None
-
-
-def case_info(case: Case) -> None:
-
-    print("#########################################")
-    print(f"Initial epoch: {case.initial_epoch}")
-
-    if case.days:
-
-        print(f"Time span: {case.tspan} days")
-
-    else:
-
-        print(f"Time span: {(case.tspan / (24. * 3600.)):0.4f} days")
-
-    print(f"Harmonics database: {case.db_name}")
-    print(f"Harmonics degree: {case.harmonics_deg}")
 
 
 def grail_orbit(t: ndarray, case: Case) -> ndarray:
