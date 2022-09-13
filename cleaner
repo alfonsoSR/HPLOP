@@ -1,0 +1,9 @@
+#!/bin/zsh
+
+root="src/hplop"
+
+rm $root/**/*cpython*
+rm $root/**/*.html
+rm -r $root/**/__pycache__
+rm $root/**/*.c
+rm -r demo/__pycache__

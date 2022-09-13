@@ -1,7 +1,7 @@
 # Cython stuff
 
 **/build/*
-*.cpython-39-darwin.so
+*.cpython*
 *.html
 *.c
 
@@ -26,3 +26,6 @@ dev
 # VS code
 
 .vscode
+
+databases
+grail

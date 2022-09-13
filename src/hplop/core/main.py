@@ -72,6 +72,8 @@ class main:
 
         if self.case.cartesian:
 
+            # Should check if input is reasonable
+
             self.y0 = self.case.initial_state
 
         else:
