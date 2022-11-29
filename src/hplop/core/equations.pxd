@@ -50,6 +50,24 @@ cdef extern from "SpiceUsr.h" nogil:
         SpiceDouble * light_time
     )
 
+cdef class semi_frozen:
+
+    cdef:
+
+        double C22, J2, c, sqrt15
+
+        cnp.ndarray ds_array
+        double [:] ds
+
+    cdef void central_body(self, double r_vec[3])
+
+    cdef void third_body(self, double t, double r_vec[3])
+
+    cdef void new_J2(self, double t, double r_vec[3])
+
+    cdef void harmonics_C22(self, double t, double r_vec[3])
+
+
 cdef class motion_law:
 
     cdef:

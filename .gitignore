@@ -1,31 +1,37 @@
-# Cython stuff
-
+# Cython
 **/build/*
 *.cpython*
 *.html
 *.c
 
-# Makefile
-
-**/Makefile
-
-# Python stuff
-
+# Python
 **/__pycache__
 **/*.egg-info
 
-# Tests
-
-**/tests/*
-dev
-
 # Mac Stuff
-
 **/.DS_Store
 
-# VS code
-
+# VS Code
 .vscode
 
-databases
-grail
+# Undesired files
+*.tab
+*.db
+
+# Old documents
+demo*
+demo/demo.py
+
+# Spice Kernels
+*metak*
+*.bsp
+*.bpc
+*.bds
+*.dsk
+*.ek
+*.tpc
+*.tsc
+*.tf
+*.tls
+*.ti
+*.bc

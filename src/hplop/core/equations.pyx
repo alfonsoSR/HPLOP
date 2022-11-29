@@ -12,6 +12,313 @@ import numpy as np
 from hplop.utils.utils import sqlite
 
 
+cdef class semi_frozen:
+
+    def __cinit__(self, str db_name, char *kernels_path):
+
+        # Retrieve spherical harmonics coefficients from database
+
+        with sqlite(db_name) as db:
+
+            db.execute(
+                """
+                    select Clm from ord where (fk_deg = 2 and ord = 0);
+                """
+            )
+
+            self.J2 = db.fetchone()[0]
+
+            db.execute(
+                """
+                    select Clm from ord where (fk_deg = 2 and ord = 2);
+                """
+            )
+
+            self.C22 = db.fetchone()[0]
+
+        # Compute normalization parameters for C22
+
+        # Initialize ds
+
+        self.ds_array = np.zeros((6,))
+        self.ds = self.ds_array
+
+        # Load spice kernels
+
+        furnsh_c(kernels_path)
+
+        # Light speed
+
+        self.c = clight_c()
+
+        # Parameters
+
+        self.sqrt15 = sqrt(15.)
+
+    cdef void central_body(self, double r_vec[3]):
+
+        cdef:
+
+            double r, r3
+
+            int idx
+
+        r = sqrt(
+            r_vec[0] * r_vec[0] + r_vec[1] * r_vec[1] + r_vec[2] * r_vec[2]
+        )
+
+        r3 = r * r * r
+
+        for idx in range(3):
+
+            self.ds[3 + idx] += - moon.mu * r_vec[idx] / r3
+
+    cdef void third_body(self, double t, double r_vec[3]):
+
+        cdef:
+
+            double X_moon[3]
+            double X_sat[3]
+            double d_moon, d_sat, d_moon3, d_sat3
+
+            int idx
+
+        spkgps_c(moon.id, t, "J2000", earth.id, X_moon, &d_moon)
+
+        d_moon *= self.c
+        d_moon3 = d_moon * d_moon * d_moon
+
+        for idx in range(3):
+            X_sat[idx] = X_moon[idx] + r_vec[idx]
+
+        d_sat = sqrt(
+            X_sat[0] * X_sat[0] +
+            X_sat[1] * X_sat[1] +
+            X_sat[2] * X_sat[2]
+        )
+
+        d_sat3 = d_sat * d_sat * d_sat
+
+        for idx in range(3):
+            self.ds[idx + 3] += -earth.mu * (
+                (X_sat[idx] / d_sat3) - (X_moon[idx] / d_moon3)
+            )
+
+    cdef void new_J2(self, double t, double r_vec[3]):
+
+        cdef:
+
+            double R_icrf2pa[3][3]
+
+            double r_i[3]
+            double ddr[3]
+
+            double r, r2, f1, z2
+
+            int idx
+
+        # Transform position vector to PA frame
+
+        pxform_c("J2000", "MOON_PA_DE421", t, R_icrf2pa)
+
+        for idx in range(3):
+
+            r_i[idx] = (
+                R_icrf2pa[idx][0] * r_vec[0] +
+                R_icrf2pa[idx][1] * r_vec[1] +
+                R_icrf2pa[idx][2] * r_vec[2]
+            )
+
+        # Intermediate parameters
+
+        r = sqrt(r_i[0] * r_i[0] + r_i[1] * r_i[1] + r_i[2] * r_i[2])
+
+        r2 = r * r
+
+        z2 = r_i[2] * r_i[2]
+
+        f1 = - 3. * moon.mu * moon.R * moon.R * self.J2 / (2. * r2 * r2 * r)
+
+        # Acceleration in PA frame
+
+        ddr[0] = f1 * ((5. * z2 * r_i[0] / r2) - r_i[0])
+        ddr[1] = f1 * ((5. * z2 * r_i[1] / r2) - r_i[1])
+        ddr[2] = f1 * ((5. * z2 * r_i[2] / r2) - 3. * r_i[2])
+
+        # Acceleration in SCRF
+
+        for idx in range(3):
+
+            self.ds[idx + 3] += (
+                R_icrf2pa[0][idx] * ddr[0] +
+                R_icrf2pa[1][idx] * ddr[1] +
+                R_icrf2pa[2][idx] * ddr[2]
+            )
+
+    # cdef void harmonics_J2(self, double t, double r_vec[3]):
+
+    #     cdef:
+
+    #         double r, r2, f1, f2, z2
+
+    #         double R_icrf2pa[3][3]
+
+    #         double r_i[3]
+    #         double ddr[3]
+
+    #         int idx
+
+    #     # Transform position vector to PA reference frame
+
+    #     pxform_c("J2000", "MOON_PA_DE421", t, R_icrf2pa)
+
+    #     for idx in range(3):
+
+    #         r_i[idx] = (
+    #             R_icrf2pa[idx][0] * r_vec[0] +
+    #             R_icrf2pa[idx][1] * r_vec[1] +
+    #             R_icrf2pa[idx][2] * r_vec[2]
+    #         )
+
+    #     # Compute acceleration in PA reference frame
+
+    #     r = sqrt(
+    #             r_i[0] * r_i[0] +
+    #             r_i[1] * r_i[1] +
+    #             r_i[2] * r_i[2]
+    #     )
+
+    #     r2 = r * r
+    #     z2 = r_i[2] * r_i[2]
+
+    #     f1 = - 3. * moon.mu * self.J2 * moon.R * moon.R / (2. * r2 * r2 * r)
+    #     f2 = f1 * (5. * z2 / r2 - 1.)
+
+    #     ddr[0] += f2 * r_i[0]
+    #     ddr[1] += f2 * r_i[1]
+    #     ddr[2] += f1 * (5. * z2 / r2 - 3.) * r_i[2]
+
+    #     # Transform acceleration to SCRF
+
+    #     for idx in range(3):
+
+    #         self.ds[3 + idx] = (
+    #             R_icrf2pa[0][idx] * ddr[0] +
+    #             R_icrf2pa[1][idx] * ddr[1] +
+    #             R_icrf2pa[2][idx] * ddr[2]
+
+    #         )
+
+    cdef void harmonics_C22(self, double t, double r_vec[3]):
+
+        cdef:
+
+            double r, r2, sin_phi, cos_phi, sin_lambda, cos_lambda
+            double sin_2lambda, cos_2lambda, r_cos_phi
+
+            double z_partials[3]
+            double xy_partials[3]
+            double r_i[3]
+            double ddr[3]
+
+            double R_icrf2pa[3][3]
+
+            int idx
+
+        # Transform position vector to PA reference frame
+
+        pxform_c("J2000", "MOON_PA_DE421", t, R_icrf2pa)
+
+        for idx in range(3):
+
+            r_i[idx] = (
+                R_icrf2pa[idx][0] * r_vec[0] +
+                R_icrf2pa[idx][1] * r_vec[1] +
+                R_icrf2pa[idx][2] * r_vec[2]
+            )
+
+        # Compute acceleration due to C22
+
+        r = sqrt(
+                r_i[0] * r_i[0] +
+                r_i[1] * r_i[1] +
+                r_i[2] * r_i[2]
+        )
+
+        r2 = r * r
+
+        sin_phi = r_i[2] / r
+        cos_phi = sqrt(1. - sin_phi * sin_phi)
+
+        r_cos_phi = r * cos_phi
+
+        sin_lambda = 0.
+        cos_lambda = 0.
+
+        if cos_phi != 0.:
+
+            sin_lambda = r_i[1] / r_cos_phi
+            cos_lambda = r_i[0] / r_cos_phi
+
+        sin_2lambda = 2. * sin_lambda * cos_lambda
+        cos_2lambda = cos_lambda * cos_lambda - sin_lambda * sin_lambda
+
+        z_partials[0] = - sin_phi * cos_lambda
+        z_partials[1] = - sin_phi * sin_lambda
+        z_partials[2] = cos_phi
+
+        xy_partials[0] = - sin_lambda
+        xy_partials[1] = cos_lambda
+        xy_partials[2] = 0.
+
+        f1 = (
+            - moon.mu * moon. R * moon.R * self.C22 * self.sqrt15 
+            * cos_phi / (r2 * r2)
+        )
+
+        for idx in range(3):
+
+            ddr[idx] += f1 * (
+                sin_2lambda * xy_partials[idx] + cos_2lambda * (
+                    3. * r_i[idx] * cos_phi / (2. * r) +
+                    sin_phi * z_partials[idx]
+                )
+            )
+
+        # Transform acceleration to SCRF
+
+        for idx in range(3):
+
+            self.ds[3 + idx] = (
+                R_icrf2pa[0][idx] * ddr[0] +
+                R_icrf2pa[1][idx] * ddr[1] +
+                R_icrf2pa[2][idx] * ddr[2]
+
+            )
+
+    def __call__(self, double t, double [:] s):
+
+        cdef:
+
+            double r_vec[3]
+            int idx
+
+        for idx in range(3):
+            
+            r_vec[idx] = s[idx]
+            self.ds[idx] = s[idx + 3]
+            self.ds[idx + 3] = 0.
+
+        self.central_body(r_vec)
+        # self.new_J2(t, r_vec)
+        # self.third_body(t, r_vec)
+        # self.harmonics_J2(t, r_vec)
+        # self.harmonics_C22(t, r_vec)
+
+        return self.ds_array
+
+    
+
 cdef class motion_law:
 
     def __cinit__(
@@ -347,6 +654,8 @@ cdef class motion_law:
                             )
                         )
 
+        # Compute acceleration in SCRF
+
         for idx in range(3):
 
             self.ds[3 + idx] = (
@@ -462,7 +771,7 @@ cdef class motion_law:
         self.harmonics(self.limit, t, r_vec)
 
         self.third_body(t, r_vec, earth)
-        # self.third_body(t, r_vec, sun)
+        self.third_body(t, r_vec, sun)
         # self.third_body(t, r_vec, jupiter)
         # self.third_body(t, r_vec, mars)
         # self.third_body(t, r_vec, venus)

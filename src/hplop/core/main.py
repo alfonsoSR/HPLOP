@@ -4,7 +4,7 @@ from datetime import datetime
 import spiceypy as spice
 import numpy.typing as npt
 import numpy as np
-from hplop.core.equations import Kepler, motion_law
+from hplop.core.equations import Kepler, motion_law, semi_frozen
 from hplop.solver.rkn1210 import rkn1210
 from scipy.integrate import solve_ivp
 
@@ -153,7 +153,7 @@ class main:
 
             natural_motion = motion_law(
                 self.case.harmonics_deg,
-                db_name=f"{self.case.db_path}/{self.case.db_name}.db",
+                db_name=f"{self.case.db_path}/{self.case.db_name}",
                 kernels_path=bytes(f"{self.case.root}/metak", "utf-8")
             )
 
@@ -170,7 +170,7 @@ class main:
 
             natural_motion = motion_law(
                 self.case.harmonics_deg,
-                db_name=f"{self.case.db_path}/{self.case.db_name}.db",
+                db_name=f"{self.case.db_path}/{self.case.db_name}",
                 kernels_path=bytes(f"{self.case.root}/metak", "utf-8")
             )
 
@@ -182,19 +182,25 @@ class main:
 
         return sol.t, sol.y
 
-    # def prop_ivp(
-    #     self, t_span: float, max_deg: int,
-    #     method: str = "LSODA", rtol: float = 2.23e-14,
-    #     atol: float = 2.23e-18, db_name: str = "grgm1200b",
-    #     kpath: str = "spice/metak"
-    # ) -> tuple:
+    def propagate_frozen(self) -> tuple:
 
-    #     natural_motion = motion_law(
-    #         max_deg, kernels_path=bytes(kpath, 'utf-8'))
+        with kernels(self.case.root):
 
-    #     sol = solve_ivp(
-    #         natural_motion, (self.t0, self.t0 + t_span), self.y0,
-    #         method=method, rtol=rtol, atol=atol
-    #     )
+            natural_motion = semi_frozen(
+                db_name=f"{self.case.db_path}/{self.case.db_name}",
+                kernels_path=bytes(f"{self.case.root}/metak", "utf-8")
+            )
 
-    #     return sol.t, sol.y
+            sol = solve_ivp(
+                natural_motion, (self.t0, self.t0 + self.tspan),
+                self.y0, method="LSODA", rtol=2.23e-14, atol=2.23e-18
+            )
+
+            return sol.t, sol.y
+
+        #     t, s = self.solver(
+        #         natural_motion, self.t0, self.t0 + self.tspan, self.y0,
+        #         rtol=self.case.rtol, atol=self.case.atol
+        #     )
+
+        # return np.asarray(t), np.asarray(s).swapaxes(0, 1)

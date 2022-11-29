@@ -130,12 +130,12 @@ class sqlite:
     -----
     `file_name` : str
         
-        Name of the database to be used.
+        Name of the database (without extension) to be used.
     """
 
     def __init__(self, file_name: str) -> None:
 
-        self.file_name = file_name
+        self.file_name = f"{file_name}.db"
         self.connection = sqlite3.connect(self.file_name)
 
         return None
@@ -382,3 +382,12 @@ def grail_orbit(t: ndarray, case: Case) -> ndarray:
         )
 
     return grail
+
+
+def save_results(t: ndarray, s: ndarray, file: str) -> None:
+
+    sol = np.concatenate((t[None, :], s))
+
+    np.save(file, sol)
+
+    print(f"Results saved to {file}.npy")
