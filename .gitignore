@@ -18,9 +18,9 @@
 *.tab
 *.db
 
-# Old documents
-demo*
-demo/demo.py
+# Documentation
+_build
+doc
 
 # Spice Kernels
 *metak*
