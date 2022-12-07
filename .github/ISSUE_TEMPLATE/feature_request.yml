@@ -41,3 +41,11 @@ body:
       Feel free to provide any additional information that you consider relevant.
   validations:
     required: false
+
+- type: checkboxes
+  attributes:
+    label: Would you like to implement it?
+    description: |
+      If you want to try to implement the suggested feature by yourself, check the following checkbox. A maintainer will assing you the task to let others know that someone is already working on it.
+  validations:
+    required: false
