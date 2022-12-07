@@ -1,6 +1,6 @@
 name: Bug report
 description: Help us improve HPLOP by reporting a bug.
-title: ""
+title: ''
 labels: [bug]
 
 body:
@@ -34,6 +34,13 @@ body:
     label: "Expected behavior:"
     description: >
       Provide a clear and concise description of what you expected to happen.
+
+- type: input
+  arguments:
+    label: "Python version:"
+    placeholder: "Ex: 3.8"
+  validations:
+    required: true
 
 - type: textarea
   attributes:
