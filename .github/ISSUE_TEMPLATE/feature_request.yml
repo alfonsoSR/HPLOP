@@ -1,0 +1,43 @@
+name: Feature request
+description: Help us improve HPLOP by suggesting a feature.
+title: "ENH: <Please, write a comprehensive title after the 'ENH:' prefix>"
+labels: [enhancement]
+
+body:
+- type: markdown
+  attributes:
+    value: "Thank you for taking the time to suggest feature!"
+
+- type: textarea
+  attributes:
+    label: "Is your feature related to a problem? Please describe"
+    description: >
+      A clear and concise description of what the problem is.
+    placeholder: |
+      I am always frustrated when ...
+      It is difficult to work with ... because ...  
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: "Describe your suggested solution."
+    placeholder: |
+      Instead of ... I would like to be able to do ...
+  validations:
+    required: true
+
+- type: textarea
+  attributes: 
+    label: "Alternative approaches."
+    description: "Describe any alternative ideas to your suggested solution."
+  validations:
+    required: false
+
+- type: textarea
+  attributes:
+    label: "Additional context"
+    description: |
+      Feel free to provide any additional information that you consider relevant.
+  validations:
+    required: false
