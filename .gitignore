@@ -22,6 +22,9 @@
 _build
 doc
 
+# Virtual environments
+venv
+
 # Spice Kernels
 *metak*
 *.bsp
