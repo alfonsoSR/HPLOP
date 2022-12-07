@@ -3,7 +3,6 @@ description: Help us improve HPLOP by reporting a bug.
 labels: [bug]
 
 body:
-
 - type: markdown
   attributes:
     value: "Thank you for taking the time to report a bug!"
