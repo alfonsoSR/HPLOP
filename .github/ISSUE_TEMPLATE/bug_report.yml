@@ -1,3 +1,8 @@
 name: Bug report
 description: Help us improve HPLOP by reporting a bug.
 labels: [bug]
+
+body:
+- type: markdown
+  attributes:
+    value: "## Welcome!"
