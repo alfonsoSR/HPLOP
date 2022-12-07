@@ -22,7 +22,6 @@ body:
       interpreter or run as-is via `python myproblem.py`.
     placeholder: |
       import hplop
-      <<your code here>>
     render: python
   validations:
     required: true
