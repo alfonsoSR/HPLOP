@@ -1,0 +1,73 @@
+name: Bug report
+description: Help us improve HPLOP by reporting a bug.
+title: "BUG: <Please, write a comprehensive title after the 'BUG:' prefix>"
+labels: [bug]
+
+body:
+- type: markdown
+  attributes:
+    value: "Thank you for taking the time to report a bug!"
+  
+- type: textarea
+  attributes: 
+    label: "Describe the issue:"
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: "Reproduce the code example:"
+    description: >
+      A short code example that reproduces the problem/missing feature. It
+      should be self-contained, i.e., can be copy-pasted into the Python
+      interpreter or run as-is via `python myproblem.py`.
+    placeholder: |
+      import hplop
+    render: python
+  validations:
+    required: true
+  
+- type: textarea
+  attributes:
+    label: "Expected behavior:"
+    description: >
+      Provide a clear and concise description of what you expected to happen.
+
+- type: input
+  attributes:
+    label: "Python version:"
+    placeholder: "Ex: 3.8"
+  validations:
+    required: true
+    
+- type: input
+  attributes:
+    label: "Operating system:"
+    placeholder: "Ex: macOS, Linux, Windows"
+  validations:
+    required: true
+    
+- type: input
+  attributes:
+    label: "HPLOP version:"
+    placeholder: "Ex: 1.0.0"
+  validations:
+    required: true
+    
+- type: textarea
+  attributes:
+    label: "Additional context:"
+    description: |
+      Feel free to provide any unmentioned information that you consider relevant.
+  validations: 
+    required: false
+
+- type: checkboxes
+  attributes:
+    label: Would you like to solve it?
+    description: |
+      If you want to try to fix this bug by yourself, check the following checkbox. A maintainer will assign you the task to let others know that someone is already working on it.
+    options:
+      - label: I want to give it a try
+  validations:
+    required: false
