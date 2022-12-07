@@ -47,5 +47,7 @@ body:
     label: Would you like to implement it?
     description: |
       If you want to try to implement the suggested feature by yourself, check the following checkbox. A maintainer will assing you the task to let others know that someone is already working on it.
+    options:
+      - label: I want to give it a try.
   validations:
     required: false
