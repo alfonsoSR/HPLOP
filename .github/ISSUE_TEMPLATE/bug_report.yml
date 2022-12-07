@@ -1,0 +1,55 @@
+name: Bug report
+description: Help us improve HPLOP by reporting a bug.
+title: ""
+labels: [bug]
+
+body:
+- type: markdown
+  attributes:
+    value: >
+      Thank you for taking the time to file a bug report!
+    
+- type: textarea
+  attributes: 
+    label: "Describe the issue:"
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: "Reproduce the code example:"
+    description: >
+      A short code example that reproduces the problem/missing feature. It
+      should be self-contained, i.e., can be copy-pasted into the Python
+      interpreter or run as-is via `python myproblem.py`.
+    placeholder: |
+      import hplop
+      <<your code here>>
+    render: python
+  validations:
+    required: true
+  
+- type: textarea
+  attributes:
+    label: "Expected behavior:"
+    description: >
+      Provide a clear and concise description of what you expected to happen.
+
+- type: textarea
+  attributes:
+    label: "Version information:"
+    description: Please, complete the following fields.
+    placeholder: |
+      - OS: macOS, Linux, Windows
+      - Python version: ex 3.8, 3.9, etc
+      - HPLOP version: ex 1.0.0
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: "Additional context:"
+    description: |
+      Feel free to provide any unmentioned information that you consider relevant.
+    validations: 
+      required: false
