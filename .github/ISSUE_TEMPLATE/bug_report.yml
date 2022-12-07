@@ -6,3 +6,10 @@ body:
 - type: markdown
   attributes:
     value: "## Welcome!"
+
+- type: input
+  attributes:
+    label: "Python version:"
+    placeholder: "Ex: 3.8"
+  validation:
+    required: true
