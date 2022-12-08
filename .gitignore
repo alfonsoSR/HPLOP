@@ -23,7 +23,7 @@ _build
 doc
 
 # Virtual environment
-venv
+*venv
 
 # Spice Kernels
 *metak*
