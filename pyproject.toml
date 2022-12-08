@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "cython"]
+requires = ["setuptools", "cython", "numpy"]
 
 # Idk what build-backend does
 
